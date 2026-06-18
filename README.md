@@ -47,6 +47,17 @@ in the `email_accounts` table, not in `.env`.
 | Generate + send a campaign (CLI, no timeout) | `npm run send:campaign -- <campaign_id>` |
 | Tests | `npm test` |
 
+## Deploy (Vercel)
+
+The Next.js app lives in the **`web/`** subfolder, so Vercel must be told where it is:
+
+1. **Root Directory** → set to `web` (Project → Settings → Build and Deployment → Root Directory).
+   Without this you get a `404: NOT_FOUND` because Vercel builds the repo root, which has no app.
+2. **Environment Variables** (Project → Settings → Environment Variables) — the repo ships no `.env`,
+   so add: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `GOOGLE_GENAI_API_KEY`, `GOOGLE_GENAI_MODEL`.
+   The build validates these (`lib/config.ts`), so it fails fast if any are missing.
+3. **Redeploy.** Pushes to `main` then auto-deploy.
+
 ## Deliverability
 
 Every template and generated message is linted live for spam-trigger words (with safer

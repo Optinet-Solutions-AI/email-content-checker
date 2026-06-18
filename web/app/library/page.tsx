@@ -207,17 +207,20 @@ function TemplateCard({ t, onDelete }: { t: Template; onDelete: () => void }) {
         <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-muted">{t.text}</p>
       )}
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <Badge tone={tone}>risk {risk.score}</Badge>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setPreview((v) => !v)} className="text-xs text-muted hover:text-ink">
-            {preview ? "Hide" : "Preview"}
-          </button>
-          <button onClick={onDelete} className="text-xs text-danger hover:underline">Delete</button>
-          <Link href={`/checker?template=${t.id}`}>
-            <Button variant="ghost">Check &amp; improve</Button>
-          </Link>
+      {/* footer — pinned to the bottom; primary action on its own row so it never wraps */}
+      <div className="mt-auto pt-3">
+        <div className="flex items-center justify-between gap-2">
+          <Badge tone={tone}>risk {risk.score}</Badge>
+          <div className="flex items-center gap-3 text-xs">
+            <button onClick={() => setPreview((v) => !v)} className="text-muted hover:text-ink">
+              {preview ? "Hide" : "Preview"}
+            </button>
+            <button onClick={onDelete} className="text-danger hover:underline">Delete</button>
+          </div>
         </div>
+        <Link href={`/checker?template=${t.id}`} className="mt-2 block">
+          <Button variant="ghost" className="w-full justify-center">Check &amp; improve</Button>
+        </Link>
       </div>
     </Card>
   );

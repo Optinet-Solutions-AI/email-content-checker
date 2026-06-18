@@ -21,6 +21,7 @@ interface Template {
   name: string;
   brand: string | null;
   locale: string;
+  html: string;
   text: string;
   is_seed: boolean;
 }
@@ -85,12 +86,15 @@ export default function LibraryPage() {
   }
 
   async function remove(t: Template) {
-    if (!confirm(`Delete "${t.name}"?`)) return;
+    const msg = t.is_seed
+      ? `Delete the sample “${t.name}”? You can bring it back anytime with “Load / restore samples”.`
+      : `Delete “${t.name}”?`;
+    if (!confirm(msg)) return;
+    setNotice("");
     await apiDelete(`/api/content-templates/${t.id}`);
+    setNotice(`Deleted “${t.name}”.`);
     await load();
   }
-
-  const hasSeeds = templates?.some((t) => t.is_seed);
 
   return (
     <>
@@ -99,11 +103,9 @@ export default function LibraryPage() {
         subtitle="Your saved content samples. Open one in the Checker to check it and generate improved variations, or add your own."
         action={
           <div className="flex gap-2">
-            {!hasSeeds && (
-              <Button variant="ghost" loading={busy} onClick={loadSamples}>
-                Load sample templates
-              </Button>
-            )}
+            <Button variant="ghost" loading={busy} onClick={loadSamples}>
+              Load / restore samples
+            </Button>
             <Button onClick={() => setAdding((v) => !v)}>+ Add custom</Button>
           </div>
         }
@@ -175,34 +177,48 @@ export default function LibraryPage() {
         <Empty title="No templates yet" hint="Load the 5 sample templates, or add your own content." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((t) => {
-            const risk = lintDeliverability("", t.text, { ignore: t.brand ? [t.brand] : [] });
-            return (
-              <Card key={t.id} className="flex flex-col">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-display text-base leading-tight">{t.name}</p>
-                  <Badge>{t.locale}</Badge>
-                </div>
-                <p className="mt-0.5 text-xs text-muted">{t.brand ?? "—"}{t.is_seed ? " · sample" : " · custom"}</p>
-                <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-muted">{t.text}</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <Badge tone={risk.level === "high-risk" ? "danger" : risk.level === "caution" ? "warn" : "accent"}>
-                    risk {risk.score}
-                  </Badge>
-                  <div className="flex items-center gap-2">
-                    {!t.is_seed && (
-                      <button onClick={() => remove(t)} className="text-xs text-danger hover:underline">Delete</button>
-                    )}
-                    <Link href={`/checker?template=${t.id}`}>
-                      <Button variant="ghost">Check &amp; improve</Button>
-                    </Link>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+          {templates.map((t) => (
+            <TemplateCard key={t.id} t={t} onDelete={() => remove(t)} />
+          ))}
         </div>
       )}
     </>
+  );
+}
+
+function TemplateCard({ t, onDelete }: { t: Template; onDelete: () => void }) {
+  const [preview, setPreview] = useState(false);
+  const risk = lintDeliverability("", t.text, { ignore: t.brand ? [t.brand] : [] });
+  const tone = risk.level === "high-risk" ? "danger" : risk.level === "caution" ? "warn" : "accent";
+
+  return (
+    <Card className="flex flex-col">
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-display text-base leading-tight">{t.name}</p>
+        <Badge>{t.locale}</Badge>
+      </div>
+      <p className="mt-0.5 text-xs text-muted">
+        {t.brand ?? "—"}{t.is_seed ? " · sample" : " · custom"}
+      </p>
+
+      {preview ? (
+        <div className="mt-2"><HtmlPreview html={t.html} height={200} /></div>
+      ) : (
+        <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-muted">{t.text}</p>
+      )}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <Badge tone={tone}>risk {risk.score}</Badge>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setPreview((v) => !v)} className="text-xs text-muted hover:text-ink">
+            {preview ? "Hide" : "Preview"}
+          </button>
+          <button onClick={onDelete} className="text-xs text-danger hover:underline">Delete</button>
+          <Link href={`/checker?template=${t.id}`}>
+            <Button variant="ghost">Check &amp; improve</Button>
+          </Link>
+        </div>
+      </div>
+    </Card>
   );
 }

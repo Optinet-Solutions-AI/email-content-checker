@@ -1,0 +1,90 @@
+/*
+ * globals.css — design system + base styles (warm editorial, emerald accent)
+ *
+ * Inputs:  CSS variables consumed by tailwind.config.ts
+ * Outputs: base typography, color tokens, primitives
+ * Used by: app/layout.tsx
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #faf8f3;
+  --surface: #ffffff;
+  --ink: #1c1a17;
+  --muted: #6b6660;
+  --line: #e7e2d8;
+  --accent: #0f6b4f;
+  --accent-soft: #e6f1ec;
+  --danger: #b23a2e;
+  --danger-soft: #f6e7e4;
+  --ok: #2e7d5b;
+  --warn: #b4791f;
+  --warn-soft: #f7eed9;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv01";
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), Georgia, serif;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+  }
+  ::selection {
+    background: var(--accent);
+    color: #fff;
+  }
+  *:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* slim, warm scrollbars */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb {
+    background: #d9d3c7;
+    border: 3px solid var(--paper);
+    border-radius: 999px;
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(28, 26, 23, 0.03), 0 12px 30px -22px rgba(28, 26, 23, 0.25);
+  }
+  .field-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .input {
+    width: 100%;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.9rem;
+    color: var(--ink);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .input:focus {
+    border-color: var(--accent);
+    background: #fff;
+    outline: none;
+  }
+  .input::placeholder { color: #b3ada3; }
+}

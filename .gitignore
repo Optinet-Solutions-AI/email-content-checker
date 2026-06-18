@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+web/node_modules/
+.pnp
+.pnp.js
+
+# next.js
+web/.next/
+web/out/
+web/build/
+
+# env / secrets
+.env
+.env*.local
+credentials.json
+token.json
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
+.tmp/

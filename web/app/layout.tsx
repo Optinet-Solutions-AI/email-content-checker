@@ -8,6 +8,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { Sidebar } from "@/components/Sidebar";
+import { MobileNav } from "@/components/MobileNav";
 import "./globals.css";
 
 const display = Fraunces({
@@ -35,7 +36,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="flex min-h-screen">
           <Sidebar />
           <main className="flex-1 min-w-0">
-            <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10 sm:py-12">{children}</div>
+            <MobileNav />
+            <div className="mx-auto max-w-6xl px-4 py-6 sm:px-10 sm:py-12">{children}</div>
           </main>
         </div>
       </body>

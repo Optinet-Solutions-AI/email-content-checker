@@ -140,7 +140,7 @@ export default function LibraryPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((t) => {
-            const risk = lintDeliverability("", t.text);
+            const risk = lintDeliverability("", t.text, { ignore: t.brand ? [t.brand] : [] });
             return (
               <Card key={t.id} className="flex flex-col">
                 <div className="flex items-start justify-between gap-2">

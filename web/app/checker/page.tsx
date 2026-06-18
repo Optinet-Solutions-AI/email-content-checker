@@ -46,6 +46,7 @@ function Checker() {
   const [selected, setSelected] = useState<Template | null>(null);
 
   const [subject, setSubject] = useState("");
+  const [brand, setBrand] = useState("");
   const [content, setContent] = useState("");
   const [isHtml, setIsHtml] = useState(false);
 
@@ -77,12 +78,15 @@ function Checker() {
       setContent(t.text);
       setIsHtml(false);
       setSubject("");
+      setBrand(t.brand ?? "");
     }
   }
 
   // Body used for checking + as the source text for generation.
   const body = useMemo(() => (isHtml ? stripHtml(content) : content), [isHtml, content]);
   const previewHtml = selected ? selected.html : isHtml ? content : "";
+  // Exempt the brand name from spam detection (so "Fortune Play" isn't read as "play").
+  const ignore = brand.trim() ? [brand.trim()] : [];
 
   async function generate() {
     if (!body.trim()) {
@@ -96,7 +100,7 @@ function Checker() {
         text: body,
         subject: subject || undefined,
         name: selected?.name,
-        brand: selected?.brand ?? undefined,
+        brand: brand.trim() || undefined,
         locale: selected?.locale,
         count: Math.min(Math.max(count, 1), 10),
         withHtml,
@@ -142,9 +146,14 @@ function Checker() {
             </div>
           )}
 
-          <Field label="Subject (optional)">
-            <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject line" />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Subject (optional)">
+              <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject line" />
+            </Field>
+            <Field label="Brand (optional)" hint="Exempted from spam checks (e.g. a brand named “…Play”).">
+              <input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Brand name" />
+            </Field>
+          </div>
 
           <Field label="Content">
             <Textarea rows={14} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Paste your email text or HTML here…" />
@@ -188,7 +197,7 @@ function Checker() {
         <div className="flex flex-col gap-4">
           <div>
             <p className="field-label mb-2">Original</p>
-            <DeliverabilityPanel subject={subject} body={body} />
+            <DeliverabilityPanel subject={subject} body={body} ignore={ignore} />
           </div>
           {previewHtml.trim() && (
             <Card>
@@ -220,7 +229,7 @@ function Checker() {
                     {v.subject && <p className="mb-2 text-sm"><span className="field-label">Subject </span>{v.subject}</p>}
                     <ContentView html={v.html} text={v.text} />
                   </div>
-                  <DeliverabilityPanel subject={v.subject} body={v.text} />
+                  <DeliverabilityPanel subject={v.subject} body={v.text} ignore={ignore} />
                 </Card>
               ))}
             </div>

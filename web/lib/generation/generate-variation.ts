@@ -21,6 +21,7 @@ import "server-only";
 import {
   DELIVERABILITY_AI_RULES,
   lintDeliverability,
+  sanitizeContent,
   type DeliverabilityFinding,
   type DeliverabilityReport,
 } from "../deliverability";
@@ -39,7 +40,7 @@ export interface VariationSource {
 /** Hard cap on variations per request (see file header for the rationale). */
 export const MAX_VARIATIONS = 10;
 /** How many times to feed checker findings back to the AI to reach a clean score. */
-const MAX_REPAIR_ATTEMPTS = 1;
+const MAX_REPAIR_ATTEMPTS = 2;
 /** Output-token caps (smaller = faster). Text is short; HTML needs headroom. */
 const MAX_TOKENS_TEXT = 1200;
 const MAX_TOKENS_HTML = 4096;
@@ -160,16 +161,25 @@ async function generateOne(
   index: number,
 ): Promise<GeneratedVariation> {
   const maxTokens = withHtml ? MAX_TOKENS_HTML : MAX_TOKENS_TEXT;
-  let draft = await generateJson<VariationDraft>(prompt(source, angle, withHtml), SYSTEM(sanitize, withHtml), maxTokens);
-  let report = lintDeliverability(draft.subject ?? "", draft.text ?? "");
+  const ignore = source.brand ? [source.brand] : [];
+  // Deterministically clear "!" + currency symbols on every draft (the AI can't reintroduce them),
+  // and check with the brand exempted so the brand's own words aren't flagged as spam.
+  const clean = (d: VariationDraft): VariationDraft => ({
+    ...d,
+    subject: sanitizeContent(d.subject ?? ""),
+    text: sanitizeContent(d.text ?? ""),
+    html: d.html ? sanitizeContent(d.html) : d.html,
+  });
+  const lint = (d: VariationDraft) => lintDeliverability(d.subject ?? "", d.text ?? "", { ignore });
+
+  let draft = clean(await generateJson<VariationDraft>(prompt(source, angle, withHtml), SYSTEM(sanitize, withHtml), maxTokens));
+  let report = lint(draft);
 
   for (let attempt = 0; sanitize && report.level !== "clean" && attempt < MAX_REPAIR_ATTEMPTS; attempt++) {
-    const repaired = await generateJson<VariationDraft>(
-      repairPrompt(draft, report.findings, withHtml),
-      SYSTEM(sanitize, withHtml),
-      maxTokens,
+    const repaired = clean(
+      await generateJson<VariationDraft>(repairPrompt(draft, report.findings, withHtml), SYSTEM(sanitize, withHtml), maxTokens),
     );
-    const repairedReport = lintDeliverability(repaired.subject ?? "", repaired.text ?? "");
+    const repairedReport = lint(repaired);
     if (repairedReport.score >= report.score) break; // not improving — keep the better one
     draft = repaired;
     report = repairedReport;

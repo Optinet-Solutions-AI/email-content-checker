@@ -24,8 +24,21 @@ const DOT: Record<Severity, string> = {
   low: "var(--muted)",
 };
 
-export function DeliverabilityPanel({ subject, body }: { subject: string; body: string }) {
-  const report = useMemo(() => lintDeliverability(subject, body), [subject, body]);
+export function DeliverabilityPanel({
+  subject,
+  body,
+  ignore,
+}: {
+  subject: string;
+  body: string;
+  ignore?: string[];
+}) {
+  const ignoreKey = (ignore ?? []).join("|");
+  const report = useMemo(
+    () => lintDeliverability(subject, body, { ignore }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [subject, body, ignoreKey],
+  );
   const meta = LEVEL_META[report.level];
 
   return (

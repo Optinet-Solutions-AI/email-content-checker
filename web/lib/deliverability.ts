@@ -127,11 +127,25 @@ const SEVERITY_WEIGHT: Record<Severity, number> = { high: 18, medium: 9, low: 4 
  * Lint a subject + body and return a scored report. Pure + synchronous —
  * safe to call on every keystroke in the editor.
  */
-export function lintDeliverability(subject: string, body: string): DeliverabilityReport {
+export interface LintOptions {
+  /** Terms to exempt from detection — e.g. the brand name, so "Fortune Play" isn't read as "play". */
+  ignore?: string[];
+}
+
+export function lintDeliverability(
+  subject: string,
+  body: string,
+  opts: LintOptions = {},
+): DeliverabilityReport {
   const findings: DeliverabilityFinding[] = [];
   // Strip merge placeholders before scanning so the "$" in ${name} isn't read as a
   // currency symbol and {{field}} names don't trip spam-word matches.
-  const text = `${subject}\n${body}`.replace(/\$\{[^}]*\}/g, " ").replace(/\{\{[^}]*\}\}/g, " ");
+  let text = `${subject}\n${body}`.replace(/\$\{[^}]*\}/g, " ").replace(/\{\{[^}]*\}\}/g, " ");
+  // Exempt caller-supplied terms (brand names are proper nouns, not promo language).
+  for (const term of opts.ignore ?? []) {
+    const t = term?.trim();
+    if (t) text = text.replace(new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
+  }
   const lower = text.toLowerCase();
 
   // 1. Spam words — boundary-aware (longer phrases first so they win over substrings).
@@ -241,11 +255,27 @@ export function lintDeliverability(subject: string, body: string): Deliverabilit
   return { score, level, findings };
 }
 
+/**
+ * Deterministically strip the easy mechanical triggers the AI sometimes leaves:
+ * currency symbols → codes, and ALL exclamation marks → periods. Pure + safe;
+ * keeps the ${name} placeholder intact. Spam words stay AI-handled (contextual).
+ */
+export function sanitizeContent(text: string): string {
+  return text
+    .replace(/\$(?!\{)/g, "USD ") // "$" but not the "$" in ${name}
+    .replace(/€/g, "EUR ")
+    .replace(/£/g, "GBP ")
+    .replace(/¥/g, "JPY ")
+    .replace(/\s*!+/g, ".") // no exclamation marks at all
+    .replace(/\.{2,}/g, "."); // tidy any ".." this produced
+}
+
 /** One-line guidance block appended to the AI prompt so copy avoids these. */
 export const DELIVERABILITY_AI_RULES = [
   "Deliverability rules (follow strictly):",
   "- Do NOT use spam-trigger words such as: bonus, free spins, promotion, deals, play, win, 100%, guaranteed, instant cash, claim now, risk free, jackpot, free money, limited time offer.",
-  "- Avoid hype: no excessive capitalization, no multiple exclamation marks, at most one emoji, no false urgency, no aggressive 'buy now / click here' CTAs, no gambling vocabulary.",
+  "- Avoid hype: no excessive capitalization, NO exclamation marks at all, at most one emoji, no false urgency, no aggressive 'buy now / click here' CTAs, no gambling vocabulary.",
   "- Never use currency symbols ($ € £ ¥). Write the code instead (USD, EUR, GBP, JPY).",
+  "- Keep the brand name exactly as given; do not alter it.",
   "- Keep it natural, specific, and conversational — like a real 1:1 email.",
 ].join("\n");
